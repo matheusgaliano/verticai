@@ -183,6 +183,12 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 # Teto de negócio, validado explicitamente na view de processamento de edital.
 MAX_UPLOAD_PDF_SIZE = int(os.environ.get('MAX_UPLOAD_PDF_SIZE', 15 * 1024 * 1024))
 
+# Teto de negócio para a foto de perfil, validado no serializer de conta.
+# Generoso o bastante pra não incomodar com fotos de celular (que já chegam
+# em 5-8 MB fácil), mas ainda limitado — upload sem teto é disco livre pra
+# qualquer usuário autenticado encher.
+MAX_UPLOAD_AVATAR_SIZE = int(os.environ.get('MAX_UPLOAD_AVATAR_SIZE', 10 * 1024 * 1024))
+
 
 # ---------------------------------------------------------------------------
 # E-mail
@@ -230,6 +236,8 @@ REST_FRAMEWORK = {
         # Processar edital dispara chamada paga ao Gemini: limite agressivo.
         'processar_edital': os.environ.get('THROTTLE_PROCESSAR_EDITAL', '10/hour'),
         'registro': os.environ.get('THROTTLE_REGISTRO', '20/hour'),
+        # Evita força-bruta contra a senha atual de quem já tem sessão válida.
+        'trocar_senha': os.environ.get('THROTTLE_TROCAR_SENHA', '10/hour'),
     },
 }
 

@@ -6,6 +6,25 @@ from editais.models import Cargo
 from verticai.models_base import TimestampedModel
 
 
+class Perfil(TimestampedModel):
+    """Dados de conta que não pertencem ao User nativo do Django."""
+
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='perfil',
+    )
+    telefone = models.CharField(max_length=20, blank=True)
+    foto_perfil = models.ImageField(upload_to='perfis/%Y/%m/', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Perfil'
+        verbose_name_plural = 'Perfis'
+
+    def __str__(self):
+        return f"Perfil de {self.usuario.username}"
+
+
 class Preparacao(TimestampedModel):
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,

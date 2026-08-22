@@ -7,6 +7,7 @@ djangorestframework==3.18.0
 djangorestframework-simplejwt==5.5.1
 django-cors-headers==4.9.0
 python-dotenv==1.2.3
+Pillow==12.3.0
 
 # Processamento de editais (PDF + IA)
 pypdf==6.16.1

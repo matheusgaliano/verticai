@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import Disponibilidade, Preparacao
+from .models import Disponibilidade, Perfil, Preparacao
+
+
+@admin.register(Perfil)
+class PerfilAdmin(admin.ModelAdmin):
+    list_display = ('usuario', 'telefone')
+    search_fields = ('usuario__username', 'usuario__email', 'telefone')
+    autocomplete_fields = ('usuario',)
+    list_select_related = ('usuario',)
 
 
 class DisponibilidadeInline(admin.TabularInline):
