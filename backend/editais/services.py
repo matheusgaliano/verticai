@@ -26,7 +26,20 @@ from .models import Cargo, Concurso, Disciplina, Edital, Topico
 logger = logging.getLogger(__name__)
 
 # Tetos defensivos: o texto enviado ao modelo e o volume que aceitamos gravar.
-MAX_CARACTERES_PROMPT = 15_000
+#
+# Limites diferentes por fase, de propósito: os dados gerais do concurso e a
+# lista de cargos quase sempre aparecem nas primeiras páginas do edital, mas
+# o conteúdo programático detalhado de um cargo específico pode estar num
+# anexo dezenas de páginas depois — um edital real de 71 páginas já chegou a
+# 219 mil caracteres extraídos, bem além de um teto anterior de 120 mil.
+# 500 mil caracteres (~125-150 mil tokens em português) ainda é uma fração
+# pequena da janela de contexto de um modelo Flash, então o teto aqui é uma
+# margem de segurança generosa, não o limite real do modelo — só entra em
+# jogo para editais genuinamente enormes. Documentos menores (a maioria) não
+# pagam custo nenhum por esse teto estar alto: só o volume real de texto de
+# cada edital é enviado.
+MAX_CARACTERES_IDENTIFICACAO = 20_000
+MAX_CARACTERES_DETALHAMENTO = 500_000
 MAX_CARGOS = 30
 MAX_DISCIPLINAS = 60
 MAX_TOPICOS_POR_DISCIPLINA = 300
@@ -81,12 +94,23 @@ Texto do Edital:
 
 PROMPT_DETALHAMENTO = """
 Analise o texto a seguir, extraído de um edital de concurso público.
-Extraia o conteúdo programático (disciplinas, pesos e tópicos) APENAS para
-o cargo indicado abaixo. Editais frequentemente têm conteúdo diferente por
-cargo — ignore disciplinas de outros cargos que não sejam o indicado.
-Preserve a ordem dos tópicos como aparecem no edital.
+Extraia o conteúdo programático (disciplinas, pesos e tópicos) referente
+ao cargo indicado abaixo.
 
 Cargo alvo: {cargo_nome}
+
+A seção com o conteúdo programático nem sempre é identificada pelo nome
+exato do cargo — bancas frequentemente nomeiam a seção pela área de
+conhecimento correspondente (ex.: o cargo "Contador" pode estar sob uma
+seção chamada "Conhecimentos Específicos de Contabilidade", sem a
+palavra "Contador" no cabeçalho; "Fiscal de Tributos" pode aparecer sob
+"Conhecimentos Específicos de Legislação Tributária"). Use o contexto do
+edital como um todo — a área de atuação do cargo, os requisitos, outras
+menções a ele — para localizar a seção correta, não apenas uma
+correspondência literal de texto entre o nome do cargo e o título da
+seção. Editais frequentemente têm conteúdo diferente por cargo — ignore
+disciplinas que claramente pertençam a outro cargo. Preserve a ordem dos
+tópicos como aparecem no edital.
 
 Retorne ESTRITAMENTE um JSON válido no formato:
 {{
@@ -121,6 +145,10 @@ def extrair_texto_pdf(pdf_file):
             'Envie a versão em texto do edital.'
         )
 
+    logger.info(
+        'Texto extraído do PDF: %d páginas, %d caracteres. Prévia: %r',
+        len(reader.pages), len(texto), texto[:500],
+    )
     return texto
 
 
@@ -184,6 +212,8 @@ def _chamar_gemini(prompt):
             )
             time.sleep(espera)
 
+    logger.info('Resposta bruta do Gemini: %r', response.text)
+
     try:
         return json.loads(response.text)
     except (TypeError, ValueError) as exc:
@@ -193,16 +223,17 @@ def _chamar_gemini(prompt):
 
 def identificar_concurso_e_cargos(texto_edital):
     """Fase 1: identifica o concurso e todos os cargos mencionados no edital."""
-    prompt = PROMPT_IDENTIFICACAO.format(texto=texto_edital[:MAX_CARACTERES_PROMPT])
+    prompt = PROMPT_IDENTIFICACAO.format(texto=texto_edital[:MAX_CARACTERES_IDENTIFICACAO])
     dados = _chamar_gemini(prompt)
     return _validar_identificacao(dados)
 
 
 def detalhar_disciplinas_do_cargo(texto_edital, cargo_nome):
     """Fase 2: extrai disciplinas/tópicos/pesos focados em UM cargo já identificado."""
+    logger.info('Detalhando cargo — nome usado na busca: %r', cargo_nome)
     prompt = PROMPT_DETALHAMENTO.format(
         cargo_nome=cargo_nome,
-        texto=texto_edital[:MAX_CARACTERES_PROMPT],
+        texto=texto_edital[:MAX_CARACTERES_DETALHAMENTO],
     )
     dados = _chamar_gemini(prompt)
     return _validar_detalhamento(dados)

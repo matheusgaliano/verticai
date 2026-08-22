@@ -105,9 +105,17 @@ class ConcursoIdentificadoSerializer(serializers.Serializer):
 class DisciplinaExtraidaSerializer(serializers.Serializer):
     nome = serializers.CharField(max_length=150)
     peso = serializers.FloatField(default=1.0, min_value=0.1, max_value=10.0)
+    # allow_empty=True: a fase 2 (_validar_detalhamento) já aceita uma
+    # disciplina sem tópicos — a IA às vezes só identifica os nomes das
+    # disciplinas de um cargo sem detalhar sub-tópicos (ex.: conteúdo
+    # detalhado além do limite de caracteres enviado, ou o próprio edital
+    # não desdobra a disciplina em tópicos). Exigir lista não-vazia aqui
+    # tornava qualquer disciplina nessa situação impossível de confirmar.
     topicos = serializers.ListField(
         child=serializers.CharField(max_length=255, allow_blank=False),
-        allow_empty=False,
+        allow_empty=True,
+        required=False,
+        default=list,
         max_length=300,
     )
 
