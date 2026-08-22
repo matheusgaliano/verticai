@@ -20,10 +20,11 @@ logger = logging.getLogger(__name__)
 
 
 class ListarCargosView(generics.ListAPIView):
-    """Catálogo de cargos disponíveis para seleção. Paginado e pesquisável."""
+    """Catálogo de cargos já cadastrados (alimenta um <select>, não uma tabela)."""
 
     serializer_class = CargoSerializer
     permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = None
 
     def get_queryset(self):
         queryset = Cargo.objects.select_related('edital__concurso')

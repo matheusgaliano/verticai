@@ -16,7 +16,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Carrega o .env local. Em produção as variáveis vêm do próprio ambiente e o
 # arquivo simplesmente não existe (load_dotenv é no-op nesse caso).
-load_dotenv(BASE_DIR / '.env')
+# override=True: o .env é a fonte da verdade em dev — sem isso, uma variável
+# já presente no ambiente do processo (ex.: sobrevivendo a um autoreload)
+# vence o arquivo, e editar o .env parece não fazer efeito até matar o
+# processo inteiro.
+load_dotenv(BASE_DIR / '.env', override=True)
 
 
 def env_bool(nome, padrao=False):
@@ -243,7 +247,7 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
-GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-3.6-flash')
 
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')

@@ -12,6 +12,7 @@ export default function App() {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         setToken(null);
+        setCurrentTab('dashboard');
     };
 
     if (!token) {
