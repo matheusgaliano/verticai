@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import UploadEdital from './pages/UploadEdital';
+import Assinatura from './pages/Assinatura';
 
 export default function App() {
     const [token, setToken] = useState(localStorage.getItem('access_token'));
@@ -41,8 +42,13 @@ export default function App() {
             </header>
 
             <main style={{ padding: '20px' }}>
-                {currentTab === 'dashboard' && <Dashboard />}
+                {currentTab === 'dashboard' && (
+                    <Dashboard onNavegarAssinatura={() => setCurrentTab('assinatura')} />
+                )}
                 {currentTab === 'upload' && <UploadEdital />}
+                {currentTab === 'assinatura' && (
+                    <Assinatura onVoltar={() => setCurrentTab('dashboard')} />
+                )}
             </main>
         </div>
     );
