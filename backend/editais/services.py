@@ -14,6 +14,7 @@ Nada é persistido até a confirmação explícita do usuário — ver
 
 import json
 import logging
+import time
 from datetime import date
 
 from django.conf import settings
@@ -33,6 +34,12 @@ PESO_PADRAO = 1.0
 PESO_MINIMO = 0.1
 PESO_MAXIMO = 10.0
 VAGAS_PADRAO = 1
+
+# Backoff exponencial só para 503/UNAVAILABLE — sobrecarga temporária do
+# modelo no lado do Google, não um problema da nossa chave ou da requisição.
+# 1 tentativa original + 1 retentativa por valor de espera aqui (3 valores =
+# até 3 retentativas, 4 tentativas no total).
+GEMINI_BACKOFF_SEGUNDOS = (2, 4, 8)
 
 
 class ProcessamentoEditalError(Exception):
@@ -117,26 +124,65 @@ def extrair_texto_pdf(pdf_file):
     return texto
 
 
+def _erro_e_sobrecarga_temporaria(exc, genai_errors):
+    """503/UNAVAILABLE: sobrecarga momentânea do modelo no lado do Google.
+
+    Distinto de qualquer erro 4xx (403 permissão, 429 cota, request mal
+    formado) — esses são ClientError e nunca entram aqui, porque tentar de
+    novo não muda o resultado (ou piora um problema de cota).
+    """
+    return isinstance(exc, genai_errors.ServerError) and getattr(exc, 'code', None) == 503
+
+
 def _chamar_gemini(prompt):
-    """Chamada de baixo nível ao Gemini, comum às duas fases. Devolve o JSON bruto."""
+    """Chamada de baixo nível ao Gemini, comum às duas fases. Devolve o JSON bruto.
+
+    Reoenta com backoff exponencial (2s, 4s, 8s) só quando o Google devolve
+    503/UNAVAILABLE. Qualquer outro erro — chave inválida, sem permissão,
+    cota estourada, request malformado — falha direto, sem retry.
+    """
     if not settings.GEMINI_API_KEY:
         raise IAIndisponivelError('Integração com IA não configurada no servidor.')
 
     # Import tardio: mantém o app carregável mesmo sem a integração configurada.
     from google import genai
+    from google.genai import errors as genai_errors
     from google.genai import types
 
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    config = types.GenerateContentConfig(response_mime_type='application/json')
+    total_tentativas = len(GEMINI_BACKOFF_SEGUNDOS) + 1
 
-    try:
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type='application/json'),
-        )
-    except Exception as exc:
-        logger.exception('Erro na chamada ao Gemini')
-        raise IAIndisponivelError('O serviço de IA está indisponível no momento.') from exc
+    response = None
+    for tentativa in range(1, total_tentativas + 1):
+        try:
+            response = client.models.generate_content(
+                model=settings.GEMINI_MODEL,
+                contents=prompt,
+                config=config,
+            )
+            break
+        except Exception as exc:
+            sobrecarregado = _erro_e_sobrecarga_temporaria(exc, genai_errors)
+            ultima_tentativa = tentativa == total_tentativas
+
+            if not sobrecarregado or ultima_tentativa:
+                logger.exception(
+                    'Erro na chamada ao Gemini (tentativa %d/%d)', tentativa, total_tentativas,
+                )
+                if sobrecarregado:
+                    raise IAIndisponivelError(
+                        'O serviço de IA está temporariamente sobrecarregado. '
+                        'Tente novamente em alguns minutos.'
+                    ) from exc
+                raise IAIndisponivelError('O serviço de IA está indisponível no momento.') from exc
+
+            espera = GEMINI_BACKOFF_SEGUNDOS[tentativa - 1]
+            logger.warning(
+                'Gemini sobrecarregado (503/UNAVAILABLE) — tentativa %d/%d, nova tentativa em %ds',
+                tentativa, total_tentativas, espera,
+            )
+            time.sleep(espera)
 
     try:
         return json.loads(response.text)
