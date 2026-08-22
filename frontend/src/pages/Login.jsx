@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../services/api';
+import Logo from '../components/Logo';
 
 export default function Login({ onLoginSuccess }) {
     const [isRegister, setIsRegister] = useState(false);
@@ -27,39 +28,76 @@ export default function Login({ onLoginSuccess }) {
     };
 
     return (
-        <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc' }}>
-            <h2>{isRegister ? 'Criar Conta' : 'Login'}</h2>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    placeholder="Usuário"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    required
-                /><br /><br />
-                {isRegister && (
-                    <>
-                        <input
-                            type="email"
-                            placeholder="E-mail"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        /><br /><br />
-                    </>
-                )}
-                <input
-                    type="password"
-                    placeholder="Senha"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                /><br /><br />
-                <button type="submit">{isRegister ? 'Cadastrar' : 'Entrar'}</button>
-            </form>
-            <br />
-            <button onClick={() => setIsRegister(!isRegister)}>
-                {isRegister ? 'Já tem conta? Entrar' : 'Não tem conta? Cadastre-se'}
-            </button>
+        <div className="auth-shell">
+            <div className="auth-card">
+                <div className="auth-brand">
+                    <div className="brand">
+                        <Logo size={42} />
+                        VerticAI
+                    </div>
+                    <p className="auth-tagline">Sua trilha até a aprovação</p>
+                </div>
+
+                <div className="card">
+                    <div className="card__body">
+                        <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>
+                            {isRegister ? 'Criar conta' : 'Entrar'}
+                        </h2>
+                        <form onSubmit={handleSubmit}>
+                            <div className="field">
+                                <label htmlFor="username">Usuário</label>
+                                <input
+                                    id="username"
+                                    className="input"
+                                    type="text"
+                                    placeholder="Seu usuário"
+                                    value={formData.username}
+                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            {isRegister && (
+                                <div className="field">
+                                    <label htmlFor="email">E-mail</label>
+                                    <input
+                                        id="email"
+                                        className="input"
+                                        type="email"
+                                        placeholder="voce@exemplo.com"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="field">
+                                <label htmlFor="password">Senha</label>
+                                <input
+                                    id="password"
+                                    className="input"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <button type="submit" className="btn btn-accent btn-block">
+                                {isRegister ? 'Cadastrar' : 'Entrar'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div className="auth-toggle">
+                    {isRegister ? 'Já tem conta?' : 'Não tem conta?'}{' '}
+                    <button className="btn-link" onClick={() => setIsRegister(!isRegister)}>
+                        {isRegister ? 'Entrar' : 'Cadastre-se'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

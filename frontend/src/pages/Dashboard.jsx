@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 
+const TAREFA_META = {
+    REVISAO: { label: 'Revisão', pillClass: 'pill--accent' },
+    TEORIA: { label: 'Teoria', pillClass: 'pill--muted' },
+};
+
 export default function Dashboard({ onNavegarAssinatura }) {
     const [plano, setPlano] = useState([]);
     const [minutosDisponiveis, setMinutosDisponiveis] = useState(0);
@@ -28,32 +33,15 @@ export default function Dashboard({ onNavegarAssinatura }) {
 
     if (erroAssinatura) {
         return (
-            <div style={{ maxWidth: '800px', margin: '30px auto' }}>
-                <h2>Plano de Estudos de Hoje</h2>
-                <div
-                    style={{
-                        background: '#fff3cd',
-                        border: '1px solid #ffc107',
-                        borderLeft: '5px solid #ffc107',
-                        borderRadius: '4px',
-                        padding: '16px 20px',
-                        color: '#664d03',
-                    }}
-                >
-                    <p style={{ margin: 0, fontWeight: 'bold' }}>Acesso restrito a assinantes</p>
-                    <p style={{ margin: '8px 0 16px' }}>{erroAssinatura}</p>
-                    <button
-                        onClick={onNavegarAssinatura}
-                        style={{
-                            background: '#ffc107',
-                            color: '#664d03',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                        }}
-                    >
+            <div className="page">
+                <div className="page-header">
+                    <span className="kicker">Hoje</span>
+                    <h2>Plano de Estudos</h2>
+                </div>
+                <div className="alert alert--warning">
+                    <p className="alert__title">Acesso restrito a assinantes</p>
+                    <p className="alert__body">{erroAssinatura}</p>
+                    <button className="btn btn-accent" onClick={onNavegarAssinatura}>
                         Assinar agora
                     </button>
                 </div>
@@ -62,34 +50,46 @@ export default function Dashboard({ onNavegarAssinatura }) {
     }
 
     return (
-        <div style={{ maxWidth: '800px', margin: '30px auto' }}>
-            <h2>Plano de Estudos de Hoje</h2>
-            <p>Tempo total disponível para hoje: <strong>{minutosDisponiveis} minutos</strong></p>
+        <div className="page">
+            <div className="page-header">
+                <span className="kicker">Hoje</span>
+                <h2>Plano de Estudos</h2>
+            </div>
 
-            {plano.length === 0 ? (
-                <p>Nenhuma meta agendada para hoje ou disponibilidade não configurada.</p>
-            ) : (
-                <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr>
-                            <th>Disciplina</th>
-                            <th>Tópico</th>
-                            <th>Tipo de Tarefa</th>
-                            <th>Tempo Sugerido</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {plano.map((item) => (
-                            <tr key={item.topico_id}>
-                                <td>{item.disciplina_nome}</td>
-                                <td>{item.topico_nome}</td>
-                                <td><strong>{item.tipo_tarefa}</strong></td>
-                                <td>{item.tempo_sugerido_minutos} min</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <div className="card">
+                <div className="card__head">
+                    <p className="card__title">Plano de Estudos de Hoje</p>
+                    <div className="plan-stat">
+                        {minutosDisponiveis}
+                        <small>min disponíveis</small>
+                    </div>
+                </div>
+
+                {plano.length === 0 ? (
+                    <p className="empty-state">
+                        Nenhuma meta agendada para hoje ou disponibilidade não configurada.
+                    </p>
+                ) : (
+                    <ul className="plan-list">
+                        {plano.map((item) => {
+                            const tarefa = TAREFA_META[item.tipo_tarefa] || {
+                                label: item.tipo_tarefa,
+                                pillClass: 'pill--muted',
+                            };
+                            return (
+                                <li className="plan-row" key={item.topico_id}>
+                                    <span className={`pill ${tarefa.pillClass}`}>{tarefa.label}</span>
+                                    <span>
+                                        <span className="plan-row__topic">{item.topico_nome}</span>
+                                        <span className="plan-row__disc">{item.disciplina_nome}</span>
+                                    </span>
+                                    <span className="plan-row__time">{item.tempo_sugerido_minutos} min</span>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
+            </div>
         </div>
     );
 }

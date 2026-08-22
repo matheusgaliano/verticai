@@ -3,6 +3,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import UploadEdital from './pages/UploadEdital';
 import Assinatura from './pages/Assinatura';
+import MinhaConta from './pages/MinhaConta';
+import Logo from './components/Logo';
 
 export default function App() {
     const [token, setToken] = useState(localStorage.getItem('access_token'));
@@ -20,33 +22,43 @@ export default function App() {
     }
 
     return (
-        <div>
-            <header style={{ background: '#282c34', padding: '15px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1 style={{ margin: 0, fontSize: '20px' }}>VerticAI - Painel de Estudos</h1>
-                <nav>
+        <div className="app-shell">
+            <header className="app-header">
+                <div className="brand">
+                    <Logo size={34} />
+                    VerticAI
+                </div>
+                <nav className="app-nav">
                     <button
+                        className={`nav__btn ${currentTab === 'dashboard' ? 'nav__btn--active' : ''}`}
                         onClick={() => setCurrentTab('dashboard')}
-                        style={{ marginRight: '10px', fontWeight: currentTab === 'dashboard' ? 'bold' : 'normal' }}
                     >
                         Dashboard
                     </button>
                     <button
+                        className={`nav__btn ${currentTab === 'upload' ? 'nav__btn--active' : ''}`}
                         onClick={() => setCurrentTab('upload')}
-                        style={{ marginRight: '10px', fontWeight: currentTab === 'upload' ? 'bold' : 'normal' }}
                     >
-                        Importar Edital (PDF)
+                        Importar Edital
                     </button>
-                    <button onClick={handleLogout} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer' }}>
+                    <button
+                        className={`nav__btn ${currentTab === 'conta' ? 'nav__btn--active' : ''}`}
+                        onClick={() => setCurrentTab('conta')}
+                    >
+                        Minha Conta
+                    </button>
+                    <button className="btn btn-danger-ghost" onClick={handleLogout} style={{ marginLeft: '12px' }}>
                         Sair
                     </button>
                 </nav>
             </header>
 
-            <main style={{ padding: '20px' }}>
+            <main>
                 {currentTab === 'dashboard' && (
                     <Dashboard onNavegarAssinatura={() => setCurrentTab('assinatura')} />
                 )}
                 {currentTab === 'upload' && <UploadEdital />}
+                {currentTab === 'conta' && <MinhaConta />}
                 {currentTab === 'assinatura' && (
                     <Assinatura onVoltar={() => setCurrentTab('dashboard')} />
                 )}
